@@ -13,7 +13,16 @@
 
     <script>
         function downloadVideo() {
-          const videoUrl = document.getElementById('videoUrl').value;
+          const videoUrlElement = document.getElementById('videoLink');
+          if (!videoUrlElement) {
+            console.error('Input element with ID "videoLink" not found');
+            return;
+          }
+          const videoUrl = videoUrlElement.value;
+          if (!videoUrl) {
+            console.error('No URL entered');
+            return;
+          }
           fetch('/.netlify/functions/download', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
