@@ -28,8 +28,18 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url: videoUrl })
           })
-          .then(response => response.blob())
-          .then(blob => {
+          .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.text();  // Get raw response for base64
+          })
+          .then(text => {
+            const byteCharacters = atob(text);  // Decode base64
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'video/mp4' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -37,6 +47,7 @@
             document.body.appendChild(a);
             a.click();
             a.remove();
+            window.URL.revokeObjectURL(url);
           })
           .catch(error => console.error('Detailed error:', error));
         }
