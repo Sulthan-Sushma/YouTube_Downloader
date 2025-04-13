@@ -1,27 +1,32 @@
-from flask import Flask, request, send_file
 import youtube_dl
 
-app = Flask(__name__)
-
-@app.route('/download', methods=['POST'])
-def download_video():
+def handler(event, context):
     try:
-        data = request.get_json()
+        # Parse the event body (Netlify passes JSON as a string)
+        body = event.get('body')
+        if not body:
+            return {'statusCode': 400, 'body': 'No body provided'}
+        data = eval(body)  # Caution: Use json.loads for production safety
         video_url = data.get('url')
         if not video_url:
-            return {"error": "No URL provided"}, 400
-        ydl_opts = {'outtmpl': '/tmp/video.mp4'}  # Use /tmp for Netlify temp storage
+            return {'statusCode': 400, 'body': 'No URL provided'}
+
+        # Download the video
+        ydl_opts = {'outtmpl': '/tmp/video.mp4'}  # Use /tmp for temporary storage
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             ydl.download([video_url])
-        return send_file('/tmp/video.mp4', as_attachment=True, download_name='video.mp4')
-    except Exception as e:
-        return {"error": str(e)}, 500
 
-def handler(event, context):
-    with app.test_request_context(
-        path=event.path,
-        method=event.httpMethod,
-        headers=event.headers,
-        data=event.body
-    ):
-        return app.dispatch_request()
+        # Read and return the file as a binary response
+        with open('/tmp/video.mp4', 'rb') as f:
+            file_data = f.read()
+        return {
+            'statusCode': 200,
+            'body': file_data.decode('latin1'),  # Encode binary data as string
+            'headers': {
+                'Content-Type': 'video/mp4',
+                'Content-Disposition': 'attachment; filename="video.mp4"'
+            },
+            'isBase64Encoded': False
+        }
+    except Exception as e:
+        return {'statusCode': 500, 'body': str(e)}
