@@ -12,38 +12,25 @@
     <div id="response"></div>
 
     <script>
-    async function downloadVideo() {
-        const link = document.getElementById('videoLink').value;
-        const responseDiv = document.getElementById('response');
-        
-        if (!link) {
-            responseDiv.textContent = "Please enter a YouTube URL";
-            return;
+        function downloadVideo() {
+          const videoUrl = document.getElementById('videoUrl').value;
+          fetch('/.netlify/functions/download', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: videoUrl })
+          })
+          .then(response => response.blob())
+          .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'video.mp4';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+          })
+          .catch(error => console.error('Detailed error:', error));
         }
-
-        responseDiv.textContent = "Downloading... Please wait.";
-
-        try {
-            const formData = new FormData();
-            formData.append('link', link);
-
-            const response = await fetch('http://localhost:8000/download', {
-                method: 'POST',
-                body: formData
-            });
-
-            const result = await response.json();
-
-            if (result.status === 'success') {
-                responseDiv.textContent = `Download Completed`;
-            } else {
-                responseDiv.textContent = `Error: ${result.error || 'Unknown error'}`;
-            }
-        } catch (error) {
-            responseDiv.textContent = `Network Error: ${error.message}`;
-            console.error('Detailed error:', error);
-        }
-    }
-    </script>
+      </script>
 </body>
 </html>
